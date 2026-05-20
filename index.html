@@ -1,0 +1,241 @@
+<?php
+include 'config.php';
+
+// Proses saat ada pesan yang dikirim via metode POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $message = htmlspecialchars(strip_tags($_POST['message']));
+    if (!empty($message)) {
+        $stmt = $conn->prepare("INSERT INTO messages (message) VALUES (?)");
+        $stmt->bind_param("s", $message);
+        $stmt->execute();
+        $stmt->close();
+    }
+    header("Location: index.php");
+    exit();
+}
+
+// Ambil semua pesan untuk ditampilkan
+$result = $conn->query("SELECT message, created_at FROM messages ORDER BY created_at DESC");
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirim Pesan Rahasia 🤫</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #f3f4fc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+        .card {
+            max-width: 680px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 42px;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25), 0 8px 18px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(1px);
+            overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: scale(1.01);
+        }
+        /* Header dengan foto profil dan developer */
+        .profile-header {
+            background: #ffffff;
+            padding: 32px 24px 20px 24px;
+            text-align: center;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .avatar {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            margin-bottom: 14px;
+            background: #f0f2f5;
+        }
+        .greeting {
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1f2b3c, #2c3e66);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+        .dev-name {
+            font-size: 0.9rem;
+            color: #6c7a91;
+            background: #f0f4fa;
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 60px;
+            margin-top: 12px;
+            font-weight: 500;
+        }
+        /* bagian kirim pesan */
+        .message-form {
+            padding: 28px 28px 16px 28px;
+        }
+        textarea {
+            width: 100%;
+            border-radius: 32px;
+            border: 1.5px solid #e2e8f0;
+            padding: 16px 20px;
+            font-size: 1rem;
+            resize: vertical;
+            transition: all 0.2s;
+            background: #fefefe;
+            font-weight: 450;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+        button {
+            margin-top: 18px;
+            width: 100%;
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 14px 0;
+            border-radius: 44px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+        button:hover {
+            background: #0f172a;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px -12px #1e293b;
+        }
+        /* daftar pesan masuk */
+        .messages-section {
+            background: #f9fafc;
+            padding: 8px 28px 32px 28px;
+            border-top: 1px solid #edf2f7;
+        }
+        .section-title {
+            font-weight: 600;
+            color: #334155;
+            margin: 18px 0 14px 0;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+        .message-item {
+            background: white;
+            border-radius: 28px;
+            padding: 16px 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid #eef2ff;
+            transition: all 0.15s;
+        }
+        .message-text {
+            font-size: 0.98rem;
+            line-height: 1.45;
+            color: #1e1f2c;
+            word-wrap: break-word;
+        }
+        .message-date {
+            font-size: 0.7rem;
+            color: #8d9ab0;
+            margin-top: 10px;
+            text-align: right;
+            letter-spacing: 0.2px;
+        }
+        .empty {
+            text-align: center;
+            color: #8d9ab0;
+            background: #ffffffcc;
+            border-radius: 40px;
+            padding: 28px;
+            font-weight: 500;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #eef2f8;
+            border-radius: 12px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b9c2d4;
+            border-radius: 12px;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            padding: 20px 0 24px;
+            color: #a0abbc;
+            border-top: 1px solid #eef2fa;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <!-- Foto profil dan developer Thohir sesuai permintaan -->
+    <div class="profile-header">
+        <img class="avatar" src="https://files.catbox.moe/mg4i76.jpg" alt="Foto Profil" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?background=8b5cf6&color=fff&bold=true&size=110'">
+        <div class="greeting">💬 Pesan Rahasia</div>
+        <div class="dev-name">👨‍💻 Developer: Thohir</div>
+    </div>
+
+    <!-- Form kirim pesan (anonim) -->
+    <div class="message-form">
+        <form method="POST" action="">
+            <textarea name="message" rows="3" placeholder="Tulis pesan anonim di sini... (pengirim tidak akan terlihat)" required></textarea>
+            <button type="submit">✨ Kirim Secara Anonim ✨</button>
+        </form>
+    </div>
+
+    <!-- Daftar pesan yang sudah diterima -->
+    <div class="messages-section">
+        <div class="section-title">
+            📬 Pesan untukmu
+        </div>
+        <div class="message-list">
+            <?php if ($result && $result->num_rows > 0): ?>
+                <?php while($row = $result->fetch_assoc()): ?>
+                    <div class="message-item">
+                        <div class="message-text"><?= nl2br(htmlspecialchars($row['message'])) ?></div>
+                        <div class="message-date"><?= date('d M Y, H:i', strtotime($row['created_at'])) ?></div>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="empty">🌸 Belum ada pesan anonim. Kirim yang pertama! 🌸</div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <footer>🙈 Pesan dikirim secara anonim — siapa pun bisa kirim, identitasmu aman.</footer>
+</div>
+</body>
+</html>
+<?php $conn->close(); ?>
